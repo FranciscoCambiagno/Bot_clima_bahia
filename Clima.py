@@ -2,8 +2,14 @@ import urllib.request
 import zipfile
 import pandas as pd
 from os import remove
+from decouple import config
+import requests
 
 def datos_SMN(path):
+    """
+    Consigue los datos del Servicio Meteorologico Nacional.
+    """
+  
     path_smn = path + "SMN/"
     path_zip = path_smn + "archivo.zip"
 
@@ -38,12 +44,29 @@ def datos_SMN(path):
     remove(path_smn + txt_nombre)
     remove(path_zip)
 
+def datos_TUTIEMPO():
+    """
+    Consigue los datos de la pagina Tu Tiempo.
+    """
+
+    dict_tutiempo = {}
+
+    #---Extrae la informacion en un json---
+    key = config('KEY_TUTIEMPO')
+    response = requests.get(f'https://api.tutiempo.net/json/?lan=es&apid={key}&lid=42815')
+    jsonResponse = response.json()
+    
+    #---Saca del json los datos del cima actuales--- 
+    dict_tutiempo  = jsonResponse["hour_hour"]["hour1"]
+    print(dict_tutiempo)
+    return(dict_tutiempo)
 
 
 def run():
     path = "E:/Programacion/Proyetos/Clima/"
     
     datos_SMN(path)
+    datos_TUTIEMPO()
 
 if __name__ == "__main__":
     run()
