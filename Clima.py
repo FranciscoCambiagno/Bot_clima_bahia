@@ -16,14 +16,14 @@ def datos_SMN(path):
     #---Descarga del archivo---
     url = 'https://ssl.smn.gob.ar/dpd/zipopendata.php?dato=tiepre'
     urllib.request.urlretrieve(url, path_zip)
-    print('Archivo descargado exitosamente.')
+    print('Archivo descargado exitosamente.')  # "log" archivo descargado
 
     #---Extracion del zip---
     password = None
 
     archivo_zip = zipfile.ZipFile(path_zip, "r")
     try:
-        print(archivo_zip.namelist())
+        #print(archivo_zip.namelist())
         txt_nombre = archivo_zip.namelist()[0]
         archivo_zip.extractall(pwd=password, path=path_smn)
     except:
@@ -33,16 +33,22 @@ def datos_SMN(path):
 
     #---Obtencion de los datos de bahia---
     df = pd.read_csv(path_smn + txt_nombre, sep=";", encoding="ISO-8859-1",
-                 names = ['ciudad','fecha','hora_regist','clima','visibilidad','humedad_%','a','temperatura','viento','presion']
+                 names = ['ciudad','fecha','Hora_medicion','Clima','Visibilidad','Temperatura','a','Humedad','Viento','Presion']
                  )
 
     df['ciudad'] = df['ciudad'].replace('^ ', '', regex=True)
 
     bahia_smn = df.query("ciudad == 'Bahía Blanca'")
-    bahia_smn = bahia_smn.values.tolist()
-    print(bahia_smn)    # Print de el clima en bahia
+
+    bahia_smn = bahia_smn[['Hora_medicion','Temperatura','Clima','Humedad','Presion','Viento','Visibilidad']]
+    bahia_smn['Viento'] = bahia_smn['Viento'] + ' km/h'
+    bahia_smn.rename(index={1:'SMN'}, inplace=True)
+    #print(bahia_smn)    # Print de el clima en bahia
     remove(path_smn + txt_nombre)
     remove(path_zip)
+
+    print(bahia_smn.head(5))
+    return bahia_smn
 
 def datos_TUTIEMPO():
     """
@@ -58,15 +64,30 @@ def datos_TUTIEMPO():
     
     #---Saca del json los datos del cima actuales--- 
     dict_tutiempo  = jsonResponse["hour_hour"]["hour1"]
-    print(dict_tutiempo)
-    return(dict_tutiempo)
+    
+    #---Convierte el diccionario en un dataframe---
+    df_tutiempo = pd.DataFrame([dict_tutiempo])
+    df_tutiempo = df_tutiempo.astype('str')
+
+    df_tutiempo.rename(columns={'hour_data':'Hora_medicion', 'temperature':'Temperatura', 'text':'Clima', 'humidity':'Humedad', 'pressure':'Presion', 'wind':'Viento'}, index={0:'Tu_Tiempo'}, inplace=True)
+    df_tutiempo['Viento'] = df_tutiempo['wind_direction'] + ' ' + df_tutiempo['Viento'] + ' km/h'
+    df_tutiempo.drop(columns=['date', 'icon', 'wind_direction', 'icon_wind'], inplace=True)
+
+    print(df_tutiempo.head(5))
+
+    return df_tutiempo
+
 
 
 def run():
     path = "E:/Programacion/Proyetos/Clima/"
     
-    datos_SMN(path)
-    datos_TUTIEMPO()
+    df_smn = datos_SMN(path)
+    df_tutimepo = datos_TUTIEMPO()
+
+    df_clima = pd.concat([df_smn, df_tutimepo])
+
+    print(df_clima.head())
 
 if __name__ == "__main__":
     run()
