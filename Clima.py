@@ -36,6 +36,7 @@ def datos_SMN(path):
                  names = ['ciudad','fecha','Hora_medicion','Clima','Visibilidad','Temperatura','a','Humedad','Viento','Presion']
                  )
 
+    #---Normalizacion de datos---
     df['ciudad'] = df['ciudad'].replace('^ ', '', regex=True)
 
     bahia_smn = df.query("ciudad == 'Bahía Blanca'")
@@ -43,11 +44,12 @@ def datos_SMN(path):
     bahia_smn = bahia_smn[['Hora_medicion','Temperatura','Clima','Humedad','Presion','Viento','Visibilidad']]
     bahia_smn['Viento'] = bahia_smn['Viento'] + ' km/h'
     bahia_smn.rename(index={1:'SMN'}, inplace=True)
-    #print(bahia_smn)    # Print de el clima en bahia
+    
+    #---Borrado de archivos---
     remove(path_smn + txt_nombre)
     remove(path_zip)
 
-    print(bahia_smn.head(5))
+    #print(bahia_smn.head(5))
     return bahia_smn
 
 def datos_TUTIEMPO():
@@ -73,13 +75,11 @@ def datos_TUTIEMPO():
     df_tutiempo['Viento'] = df_tutiempo['wind_direction'] + ' ' + df_tutiempo['Viento'] + ' km/h'
     df_tutiempo.drop(columns=['date', 'icon', 'wind_direction', 'icon_wind'], inplace=True)
 
-    print(df_tutiempo.head(5))
+    #print(df_tutiempo.head(5))
 
     return df_tutiempo
 
-
-
-def run():
+def obtener_dfclima():
     path = "E:/Programacion/Proyetos/Clima/"
     
     df_smn = datos_SMN(path)
@@ -87,7 +87,12 @@ def run():
 
     df_clima = pd.concat([df_smn, df_tutimepo])
 
-    print(df_clima.head())
+    return df_clima
+
+def run():
+    df = obtener_dfclima()
+
+    print(df.head())
 
 if __name__ == "__main__":
     run()
