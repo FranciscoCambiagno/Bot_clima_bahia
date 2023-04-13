@@ -4,6 +4,9 @@ import pandas as pd
 from os import remove
 from decouple import config
 import requests
+from bs4 import BeautifulSoup
+import lxml
+import re
 
 def datos_SMN(path):
     """
@@ -37,12 +40,16 @@ def datos_SMN(path):
                  )
 
     #---Normalizacion de datos---
+    bahia_smn = bahia_smn.astype('str')
     df['ciudad'] = df['ciudad'].replace('^ ', '', regex=True)
 
-    bahia_smn = df.query("ciudad == 'Bahía Blanca'")
+    bahia_smn = df.query("ciudad == 'Bahía Blanca'")    
 
     bahia_smn = bahia_smn[['Hora_medicion','Temperatura','Clima','Humedad','Presion','Viento','Visibilidad']]
     bahia_smn['Viento'] = bahia_smn['Viento'] + ' km/h'
+    bahia_smn['Presion'] = bahia_smn['Presion'].replace(' / $', ' hPa', regex=True)
+    bahia_smn['Humedad'] = bahia_smn['Humedad'] + ' ' + bahia_smn['Humedad'] + ' %'
+    bahia_smn['Temperatura'] = bahia_smn['Temperatura'] + ' ' + bahia_smn['Temperatura'] + ' ºC'
     bahia_smn.rename(index={1:'SMN'}, inplace=True)
     
     #---Borrado de archivos---
@@ -65,7 +72,7 @@ def datos_TUTIEMPO():
     jsonResponse = response.json()
     
     #---Saca del json los datos del cima actuales--- 
-    dict_tutiempo  = jsonResponse["hour_hour"]["hour1"]
+    dict_tutiempo = jsonResponse["hour_hour"]["hour1"]
     
     #---Convierte el diccionario en un dataframe---
     df_tutiempo = pd.DataFrame([dict_tutiempo])
@@ -73,19 +80,59 @@ def datos_TUTIEMPO():
 
     df_tutiempo.rename(columns={'hour_data':'Hora_medicion', 'temperature':'Temperatura', 'text':'Clima', 'humidity':'Humedad', 'pressure':'Presion', 'wind':'Viento'}, index={0:'Tu_Tiempo'}, inplace=True)
     df_tutiempo['Viento'] = df_tutiempo['wind_direction'] + ' ' + df_tutiempo['Viento'] + ' km/h'
+    df_tutiempo['Presion'] = df_tutiempo['Presion'] + ' ' + df_tutiempo['Presion'] + ' hPa'
+    df_tutiempo['Humedad'] = df_tutiempo['Humedad'] + ' ' + df_tutiempo['Humedad'] + ' %'
+    df_tutiempo['Temperatura'] = df_tutiempo['Temperatura'] + ' ' + df_tutiempo['Temperatura'] + ' ºC'
     df_tutiempo.drop(columns=['date', 'icon', 'wind_direction', 'icon_wind'], inplace=True)
 
     #print(df_tutiempo.head(5))
 
     return df_tutiempo
 
+def datos_MOTEOBAHIA():
+    #---Hago el request de la pagina web y los tranformo a lxml para manipularlo---
+    response = requests.get("https://www.meteobahia.com.ar/index.php")
+    contenido_web = BeautifulSoup(response.text, 'lxml')
+
+    #---Me quedo solo con los datos que me interesan bucando las etiquetas b y pl
+    b = contenido_web.find_all('b')[1]
+    a = contenido_web.findAll('lp')
+
+    clima = [a[0], a[3], a[5], a[8], b]
+    clima = list(map(str, clima))
+
+    # Expresión regular para etiquetas lp, sup, b y espacion (\t)
+    pattern = re.compile(r'<lp>|</lp>|<sup>|</sup>|<b>|</b>|\t')
+
+    # Lista de strings sin etiquetas lp
+    lista_sin_etiquetas = []
+    for s in clima:
+        new_s = pattern.sub('', s)
+        lista_sin_etiquetas.append(new_s)
+
+    lista_sin_etiquetas_spliteada = []
+    for element in lista_sin_etiquetas:
+        
+        lista_sin_etiquetas_spliteada += element.split('\n')
+
+    lista_sin_etiquetas_spliteada.pop(4)
+    lista_sin_etiquetas_spliteada.pop(7)
+
+    df_meteoba = pd.DataFrame([lista_sin_etiquetas_spliteada], columns=['Hora_medicion','Humedad','Presion','Radiacion','Clima','Sensacion_Termica','Viento','Temperatura'], index = ['Meteo_Bahia'])
+    df_meteoba.replace(to_replace='^\s*(.*?): ', value='', regex=True, inplace=True)
+    df_meteoba['Hora_medicion'] = df_meteoba['Hora_medicion'].replace(to_replace=' \s*(.*?)$', value='', regex=True)
+    df_meteoba = df_meteoba[['Hora_medicion','Temperatura','Clima','Humedad','Presion','Viento','Radiacion','Sensacion_Termica']]
+
+    return df_meteoba
+
 def obtener_dfclima():
     path = "E:/Programacion/Proyetos/Clima/"
     
     df_smn = datos_SMN(path)
     df_tutimepo = datos_TUTIEMPO()
+    df_meteoba = datos_MOTEOBAHIA()
 
-    df_clima = pd.concat([df_smn, df_tutimepo])
+    df_clima = pd.concat([df_smn, df_tutimepo, df_meteoba])
 
     return df_clima
 

@@ -34,10 +34,19 @@ def send_clima(message):
            Humedad: {df_clima.loc['Tu_Tiempo','Humedad']}%
            Presion Atmosferica: {df_clima.loc['Tu_Tiempo','Presion']}
            Viento: {df_clima.loc['Tu_Tiempo','Viento']}
+
+           *Meteo Bahia*
+           Hora De medicion: {df_clima.loc['Meteo_Bahia','Hora_medicion']}
+           Estado: {df_clima.loc['Meteo_Bahia','Clima']}
+           Temperatura: {df_clima.loc['Meteo_Bahia','Temperatura']}
+           Sensacion Terminca: {df_clima.loc['Meteo_Bahia','Sensacion_Termica']}
+           Humedad: {df_clima.loc['Meteo_Bahia','Humedad']}%
+           Presion Atmosferica: {df_clima.loc['Meteo_Bahia','Presion']}
+           Viento: {df_clima.loc['Meteo_Bahia','Viento']}
+           Radiacion Solar: {df_clima.loc['Meteo_Bahia','Radiacion']}
            """
 
     sent_msg = bot.send_message(message.chat.id, text, parse_mode="Markdown")
-    bot.register_next_step_handler(sent_msg)
 
 
 bot.infinity_polling()
