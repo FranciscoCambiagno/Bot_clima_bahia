@@ -2,6 +2,7 @@ clima_prueba.ipynb
 venv
 .env
 __pycache__/
+.gitignore
 
 #Airflow
 /Airflow/.astro
