@@ -40,7 +40,7 @@ def datos_SMN(path):
                  )
 
     #---Normalizacion de datos---
-    bahia_smn = bahia_smn.astype('str')
+    df = df.astype('str')
     df['ciudad'] = df['ciudad'].replace('^ ', '', regex=True)
 
     bahia_smn = df.query("ciudad == 'Bahía Blanca'")    
@@ -126,7 +126,7 @@ def datos_MOTEOBAHIA():
     return df_meteoba
 
 def obtener_dfclima():
-    path = "E:/Programacion/Proyetos/Clima/"
+    path = "./"
     
     df_smn = datos_SMN(path)
     df_tutimepo = datos_TUTIEMPO()
